@@ -47,6 +47,11 @@ class PropertyMetadata
         }
     }
 
+    public function name(): string
+    {
+        return $this->name;
+    }
+
     public function isPublic()
     {
         return $this->isPublic;

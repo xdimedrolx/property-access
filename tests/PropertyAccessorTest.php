@@ -78,4 +78,25 @@ final class PropertyAccessorTest extends TestCase
         $this->assertEquals('test@test.ru', $this->employee->email());
         $this->assertNull($this->accessor->getProperty($this->employee, 'address'));
     }
+
+    public function testHasProperty()
+    {
+        $this->assertTrue($this->accessor->hasProperty($this->user1, 'id'));
+        $this->assertTrue($this->accessor->hasProperty($this->user1, 'name'));
+        $this->assertTrue($this->accessor->hasProperty($this->user1, 'email'));
+        $this->assertTrue($this->accessor->hasProperty($this->user1, 'address'));
+        $this->assertFalse($this->accessor->hasProperty($this->user1, 'address1'));
+
+        $this->assertTrue($this->accessor->hasProperty($this->employee, 'id'));
+        $this->assertTrue($this->accessor->hasProperty($this->employee, 'name'));
+        $this->assertTrue($this->accessor->hasProperty($this->employee, 'email'));
+        $this->assertTrue($this->accessor->hasProperty($this->employee, 'address'));
+        $this->assertFalse($this->accessor->hasProperty($this->employee, 'address1'));
+    }
+
+    public function testGetPropertyNames()
+    {
+        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->user1));
+        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->employee));
+    }
 }

@@ -42,6 +42,18 @@ class PropertyAccessor
         $objProp = $value;
     }
 
+    public function hasProperty($object, string $propertyName): bool
+    {
+        $metadata = $this->getMetadata($object);
+        return $metadata->has($propertyName);
+    }
+
+    public function getPropertyNames($object): array
+    {
+        $metadata = $this->getMetadata($object);
+        return array_keys($metadata->getProperties());
+    }
+
     private function getMetadata($object): ObjectMetadata
     {
         $class = get_class($object);

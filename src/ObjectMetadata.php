@@ -16,6 +16,11 @@ class ObjectMetadata
         return $this->properties[$name];
     }
 
+    public function has(string $name): bool
+    {
+        return isset($this->properties[$name]);
+    }
+
     /**
      * @return PropertyMetadata[]
      */
