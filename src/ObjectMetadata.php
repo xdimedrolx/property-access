@@ -77,7 +77,7 @@ class ObjectMetadata
             ];
             $intersect = array_intersect($getters, $methods);
             if (count($intersect) > 0) {
-                $getterMethod = array_pop($intersect);
+                $getterMethod = array_shift($intersect);
             }
 
             $setters = [
@@ -87,7 +87,7 @@ class ObjectMetadata
             ];
             $intersect = array_intersect($setters, $methods);
             if (count($intersect) > 0) {
-                $setterMethod = array_pop($intersect);
+                $setterMethod = array_shift($intersect);
             }
 
             $props[$reflectionProperty->getName()] = new PropertyMetadata(
