@@ -5,14 +5,20 @@ namespace Bibop\PropertyAccessor;
 class ObjectMetadata
 {
     private $properties = [];
+    private $objectClass;
 
     public function __construct($object)
     {
         $this->properties = $this->properties($object);
+        $this->objectClass = get_class($object);
     }
 
     public function get(string $name): PropertyMetadata
     {
+        if (!isset($this->properties[$name])) {
+            throw new PropertyNotFoundException($this->objectClass, $name);
+        }
+
         return $this->properties[$name];
     }
 
@@ -56,7 +62,7 @@ class ObjectMetadata
     }
 
     /**
-     * @inheritdoc
+     * @return PropertyMetadata[]
      */
     private function properties($object): array
     {

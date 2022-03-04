@@ -3,6 +3,7 @@
 namespace Bibop\PropertyAccessor\Tests;
 
 use Bibop\PropertyAccessor\ObjectMetadata;
+use Bibop\PropertyAccessor\PropertyNotFoundException;
 use Bibop\PropertyAccessor\Tests\Models\Employee;
 use Bibop\PropertyAccessor\Tests\Models\User;
 use PHPUnit\Framework\TestCase;
@@ -51,6 +52,15 @@ final class ObjectMetadataTest extends TestCase
         $this->assertInstanceOf(\Closure::class, $prop->privateWriter());
     }
 
+    public function testGetPropertyMetadataWhenItDoesNotExist()
+    {
+        $this->expectException(PropertyNotFoundException::class);
+
+        $user = new User(1);
+        $metadata = new ObjectMetadata($user);
+        $metadata->get('recordId');
+    }
+
     public function testInheritedProperties()
     {
         $employee = new Employee(1);
@@ -84,5 +94,14 @@ final class ObjectMetadataTest extends TestCase
         $this->assertNull($prop->setterMethod());
         $this->assertInstanceOf(\Closure::class, $prop->privateReader());
         $this->assertInstanceOf(\Closure::class, $prop->privateWriter());
+    }
+
+    public function testGetInheritedPropertyMetadataWhenItDoesNotExist()
+    {
+        $this->expectException(PropertyNotFoundException::class);
+
+        $employee = new Employee(1);
+        $metadata = new ObjectMetadata($employee);
+        $metadata->get('recordId');
     }
 }
