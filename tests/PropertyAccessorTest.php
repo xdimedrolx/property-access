@@ -2,26 +2,34 @@
 
 namespace Bibop\PropertyAccessor\Tests;
 
+use Bibop\PropertyAccessor\Exception\PropertyDoesNotExistException;
 use Bibop\PropertyAccessor\PropertyAccessor;
+use Bibop\PropertyAccessor\Tests\Fixtures\AddressDetailedWithoutFunctions;
 use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithGetters;
 use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithMutatingGetters;
 use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithMutatingSetters;
 use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithoutFunctions;
 use Bibop\PropertyAccessor\Tests\Fixtures\Employee;
-use Bibop\PropertyAccessor\Tests\Fixtures\User;
 use PHPUnit\Framework\TestCase;
 
 final class PropertyAccessorTest extends TestCase
 {
-    private $user1;
-    private $user2;
-    private $employee;
-
-    public function setUp(): void
+    public function testGetPropertyWhenObjectDoesNotContainThisPropertyAndExceptionFlagIsDisabled(): void
     {
-        $this->user1 = new User(1, 'bibop', 'mail@test.ru', 'msk');
-        $this->user2 = new User(2);
-        $this->employee = new Employee(1, 'bibop', 'mail@test.ru', 'msk');
+        $dto = new AddressWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = new PropertyAccessor(null, false);
+
+        $this->assertEquals(null, $sut->getProperty($dto, 'haha'));
+    }
+
+    public function testGetPropertyWhenObjectDoesNotContainThisPropertyAndExceptionFlagIsEnabled(): void
+    {
+        $dto = new AddressWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = new PropertyAccessor(null, true);
+
+        $this->expectException(PropertyDoesNotExistException::class);
+
+        $sut->getProperty($dto, 'haha');
     }
 
     public function testGetPublicProperty(): void
@@ -112,9 +120,41 @@ final class PropertyAccessorTest extends TestCase
         $this->assertEquals('employee', $type);
     }
 
-//    public function testGetPropertyNames()
-//    {
-//        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->user1));
-//        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->employee));
-//    }
+    public function testGetPublicPropertyWhenClassInherits(): void
+    {
+        $dto = new AddressDetailedWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = PropertyAccessor::build();
+
+        $this->assertEquals('moscow', $sut->getProperty($dto, 'city'));
+    }
+
+    public function testGetProtectedPropertyWhenClassInherits(): void
+    {
+        $dto = new AddressDetailedWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = PropertyAccessor::build();
+
+        $this->assertEquals('ciudad de la paz', $sut->getProperty($dto, 'street'));
+    }
+
+    public function testGetPrivatePropertyWhenClassInherits(): void
+    {
+        $dto = new AddressDetailedWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = PropertyAccessor::build();
+
+        $this->expectException(PropertyDoesNotExistException::class);
+
+        $sut->getProperty($dto, 'build');
+    }
+
+    public function testGetPropertyNames(): void
+    {
+        $dto = new Employee(1, 'Juan');
+
+        $sut = PropertyAccessor::build();
+
+        $this->assertEqualsCanonicalizing(
+            ['id', 'name', 'email', 'address'],
+            $sut->getPropertyNames($dto)
+        );
+    }
 }
