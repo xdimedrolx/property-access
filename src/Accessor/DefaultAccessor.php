@@ -2,6 +2,7 @@
 
 namespace Bibop\PropertyAccessor\Accessor;
 
+use Bibop\PropertyAccessor\Exception\PropertyDoesNotExistException;
 use Bibop\PropertyAccessor\Exception\UninitializedPropertyException;
 use Bibop\PropertyAccessor\Metadata\ObjectItemMetadataInterface;
 use Bibop\PropertyAccessor\Metadata\PropertyMetadataInterface;
@@ -36,7 +37,10 @@ class DefaultAccessor implements AccessorInterface
         $accessor = $this->readAccessors[$metadata->className()] ?? null;
         if (null === $accessor) {
             $accessor = \Closure::bind(static function ($o, $name) {
-                return $o->$name;
+                if (property_exists($o, $name)) {
+                    return $o->$name;
+                }
+                throw new PropertyDoesNotExistException(get_class($o), $name);
             }, null, $metadata->className());
             $this->readAccessors[$metadata->className()] = $accessor;
         }
