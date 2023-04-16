@@ -1,6 +1,8 @@
 {
     "name": "xdimedrolx/property-accessor",
     "type": "library",
+    "license": "Apache-2.0",
+    "keywords": ["property accessor"],
     "require-dev": {
         "phpunit/phpunit": "^9"
     },
