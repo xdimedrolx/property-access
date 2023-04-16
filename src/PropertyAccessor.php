@@ -2,50 +2,106 @@
 
 namespace Bibop\PropertyAccessor;
 
+use Bibop\PropertyAccessor\Accessor\AccessorInterface;
+use Bibop\PropertyAccessor\Accessor\DefaultAccessor;
+use Bibop\PropertyAccessor\Exception\PropertyDoesNotExistException;
+use Bibop\PropertyAccessor\Exception\PropertyNotFoundException;
+use Bibop\PropertyAccessor\Exception\UninitializedPropertyException;
+use Bibop\PropertyAccessor\Metadata\MetadataGenerator;
+use Bibop\PropertyAccessor\Metadata\ObjectMetadata;
+use Cache\Adapter\PHPArray\ArrayCachePool;
+use Psr\Cache\CacheItemPoolInterface;
+
 class PropertyAccessor
 {
-    /** @var ObjectMetadata[] */
-    private $objectMetadata = [];
+    private CacheItemPoolInterface $cache;
+    private MetadataGenerator $metadataGenerator;
+    private AccessorInterface $accessor;
+    private bool $throwErrorIfPropertyDoesNotExist;
 
-    public function getProperty($object, string $propertyName)
-    {
-        $metadata = $this->getMetadata($object);
-        $prop = $metadata->get($propertyName);
-
-        if ($prop->isPublic()) {
-            return $object->{$propertyName};
-        }
-
-        if ($prop->hasGetterMethod()) {
-            return call_user_func([$object, $prop->getterMethod()]);
-        }
-
-        return $prop->privateReader()($object);
+    public function __construct(
+        ?CacheItemPoolInterface $cache = null,
+        bool $throwErrorIfPropertyDoesNotExist = false
+    ) {
+        $this->cache = $cache ?? new ArrayCachePool();
+        $this->metadataGenerator = new MetadataGenerator();
+        $this->accessor = new DefaultAccessor();
+        $this->throwErrorIfPropertyDoesNotExist = $throwErrorIfPropertyDoesNotExist;
     }
 
-    public function setProperty($object, string $propertyName, $value)
+    public static function build(): self
     {
-        $metadata = $this->getMetadata($object);
-        $prop = $metadata->get($propertyName);
-
-        if ($prop->isPublic()) {
-            $object->{$propertyName} = $value;
-            return;
-        }
-
-        if ($prop->hasSetterMethod()) {
-            call_user_func_array([$object, $prop->setterMethod()], [$value]);
-            return;
-        }
-
-        $objProp = &$prop->privateWriter()($object);
-        $objProp = $value;
+        return new self();
     }
 
-    public function hasProperty($object, string $propertyName): bool
+    /**
+     * @param object $object
+     * @param string $propertyName
+     * @return mixed|null
+     * @throws PropertyNotFoundException
+     * @throws UninitializedPropertyException
+     * @throws PropertyDoesNotExistException
+     */
+    public function getProperty(object $object, string $propertyName)
     {
         $metadata = $this->getMetadata($object);
-        return $metadata->has($propertyName);
+
+        if ($metadata->hasProperty($propertyName)) {
+            return $this->accessor->getValue($object, $metadata->getProperty($propertyName));
+        }
+
+        if ($metadata->hasMethod($propertyName)) {
+            return $this->accessor->getValue($object, $metadata->getMethod($propertyName));
+        }
+
+        if ($this->throwErrorIfPropertyDoesNotExist) {
+            throw new PropertyDoesNotExistException(get_class($object), $propertyName);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param object $object
+     * @param string $propertyName
+     * @param mixed|null $value
+     * @return $this
+     * @throws PropertyDoesNotExistException
+     */
+    public function setProperty(object $object, string $propertyName, $value): self
+    {
+        $metadata = $this->getMetadata($object);
+
+        if ($metadata->hasProperty($propertyName)) {
+            $this->accessor->setValue($object, $value, $metadata->getProperty($propertyName));
+            return $this;
+        }
+
+        if ($metadata->hasMethod($propertyName)) {
+            $this->accessor->setValue($object, $value, $metadata->getMethod($propertyName));
+            return $this;
+        }
+
+        if ($this->throwErrorIfPropertyDoesNotExist) {
+            throw new PropertyDoesNotExistException(get_class($object), $propertyName);
+        }
+
+        return $this;
+    }
+
+    public function hasProperty(object $object, string $propertyName): bool
+    {
+        $metadata = $this->getMetadata($object);
+
+        if ($metadata->hasProperty($propertyName)) {
+            return true;
+        }
+
+        if ($metadata->hasMethod($propertyName)) {
+            return true;
+        }
+
+        return false;
     }
 
     public function getPropertyNames($object): array
@@ -54,14 +110,22 @@ class PropertyAccessor
         return array_keys($metadata->getProperties());
     }
 
-    private function getMetadata($object): ObjectMetadata
+    private function getMetadata(object $object): ObjectMetadata
     {
         $class = get_class($object);
-        if (isset($this->objectMetadata[$class])) {
-            return $this->objectMetadata[$class];
+
+        $key = preg_replace('/\\\/', '.', $class);
+        $metadata = $this->cache->get($key);
+        if ($metadata) {
+            return $metadata;
         }
 
-        $this->objectMetadata[$class] = $metadata = new ObjectMetadata($object);
+        $data = $this->metadataGenerator->generate($object);
+
+        $metadata = new ObjectMetadata($class, $data['properties'], $data['methods']);
+
+        $this->cache->set($key, $metadata);
+
         return $metadata;
     }
 }

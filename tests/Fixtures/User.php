@@ -1,6 +1,6 @@
 <?php
 
-namespace Bibop\PropertyAccessor\Tests\Models;
+namespace Bibop\PropertyAccessor\Tests\Fixtures;
 
 class User
 {

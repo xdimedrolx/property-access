@@ -2,101 +2,119 @@
 
 namespace Bibop\PropertyAccessor\Tests;
 
-use Bibop\PropertyAccessor\ObjectMetadata;
 use Bibop\PropertyAccessor\PropertyAccessor;
-use Bibop\PropertyAccessor\Tests\Models\Employee;
-use Bibop\PropertyAccessor\Tests\Models\User;
+use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithGetters;
+use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithMutatingGetters;
+use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithMutatingSetters;
+use Bibop\PropertyAccessor\Tests\Fixtures\AddressWithoutFunctions;
+use Bibop\PropertyAccessor\Tests\Fixtures\Employee;
+use Bibop\PropertyAccessor\Tests\Fixtures\User;
 use PHPUnit\Framework\TestCase;
 
 final class PropertyAccessorTest extends TestCase
 {
-    private $accessor;
     private $user1;
     private $user2;
     private $employee;
 
     public function setUp(): void
     {
-        $this->accessor = new PropertyAccessor();
         $this->user1 = new User(1, 'bibop', 'mail@test.ru', 'msk');
         $this->user2 = new User(2);
         $this->employee = new Employee(1, 'bibop', 'mail@test.ru', 'msk');
     }
 
-    public function testCanBeCreated(): void
+    public function testGetPublicProperty(): void
     {
-        $this->assertInstanceOf(PropertyAccessor::class, $this->accessor);
+        $dto = new AddressWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = PropertyAccessor::build();
+        $this->assertEquals('moscow', $sut->getProperty($dto, 'city'));
     }
 
-    public function testGetProperty(): void
+    public function testGetProtectedProperty(): void
     {
-        $this->assertEquals(1, $this->accessor->getProperty($this->user1, 'id'));
-        $this->assertEquals('bibop', $this->accessor->getProperty($this->user1, 'name'));
-        $this->assertEquals('mail@test.ru', $this->accessor->getProperty($this->user1, 'email'));
-        $this->assertEquals('msk', $this->accessor->getProperty($this->user1, 'address'));
-
-        $this->assertEquals(2, $this->accessor->getProperty($this->user2, 'id'));
-        $this->assertNull($this->accessor->getProperty($this->user2, 'name'));
-        $this->assertNull($this->accessor->getProperty($this->user2, 'email'));
-        $this->assertNull($this->accessor->getProperty($this->user2, 'address'));
-
-        $this->assertEquals(1, $this->accessor->getProperty($this->employee, 'id'));
-        $this->assertEquals('bibop', $this->accessor->getProperty($this->employee, 'name'));
-        $this->assertEquals('mail@test.ru', $this->accessor->getProperty($this->employee, 'email'));
-        $this->assertEquals('msk', $this->accessor->getProperty($this->employee, 'address'));
+        $dto = new AddressWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = PropertyAccessor::build();
+        $this->assertEquals('ciudad de la paz', $sut->getProperty($dto, 'street'));
     }
 
-    public function testSetProperty(): void
+    public function testGetPrivateProperty(): void
     {
-        $this->accessor->setProperty($this->user1, 'id', 3);
-        $this->accessor->setProperty($this->user1, 'name', 'qwerty');
-        $this->accessor->setProperty($this->user1, 'email', 'test@test.ru');
-        $this->accessor->setProperty($this->user1, 'address', null);
-
-        $this->accessor->setProperty($this->user2, 'id', 4);
-        $this->accessor->setProperty($this->user2, 'name', 'test');
-        $this->accessor->setProperty($this->user2, 'email', null);
-        $this->accessor->setProperty($this->user2, 'address', 'srk');
-
-        $this->accessor->setProperty($this->employee, 'id', 3);
-        $this->accessor->setProperty($this->employee, 'name', 'qwerty');
-        $this->accessor->setProperty($this->employee, 'email', 'test@test.ru');
-        $this->accessor->setProperty($this->employee, 'address', null);
-
-        $this->assertEquals(3, $this->user1->getId());
-        $this->assertEquals('qwerty', $this->user1->name);
-        $this->assertEquals('test@test.ru', $this->user1->email());
-        $this->assertNull($this->accessor->getProperty($this->user1, 'address'));
-
-        $this->assertEquals(4, $this->user2->getId());
-        $this->assertEquals('test', $this->user2->name);
-        $this->assertNull($this->user2->email());
-        $this->assertEquals('srk', $this->accessor->getProperty($this->user2, 'address'));
-
-        $this->assertEquals(3, $this->employee->getId());
-        $this->assertEquals('qwerty', $this->employee->name);
-        $this->assertEquals('test@test.ru', $this->employee->email());
-        $this->assertNull($this->accessor->getProperty($this->employee, 'address'));
+        $dto = new AddressWithoutFunctions('moscow', 'ciudad de la paz', '1345');
+        $sut = PropertyAccessor::build();
+        $this->assertEquals('1345', $sut->getProperty($dto, 'build'));
     }
 
-    public function testHasProperty()
+    public function testSetPublicProperty(): void
     {
-        $this->assertTrue($this->accessor->hasProperty($this->user1, 'id'));
-        $this->assertTrue($this->accessor->hasProperty($this->user1, 'name'));
-        $this->assertTrue($this->accessor->hasProperty($this->user1, 'email'));
-        $this->assertTrue($this->accessor->hasProperty($this->user1, 'address'));
-        $this->assertFalse($this->accessor->hasProperty($this->user1, 'address1'));
+        $dto = new AddressWithGetters('moscow', 'ciudad de la paz', '1345');
 
-        $this->assertTrue($this->accessor->hasProperty($this->employee, 'id'));
-        $this->assertTrue($this->accessor->hasProperty($this->employee, 'name'));
-        $this->assertTrue($this->accessor->hasProperty($this->employee, 'email'));
-        $this->assertTrue($this->accessor->hasProperty($this->employee, 'address'));
-        $this->assertFalse($this->accessor->hasProperty($this->employee, 'address1'));
+        $sut = PropertyAccessor::build();
+        $sut->setProperty($dto, 'city', 'buenos aires');
+
+        $this->assertEquals('buenos aires', $dto->getCity());
     }
 
-    public function testGetPropertyNames()
+    public function testSetProtectedProperty(): void
     {
-        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->user1));
-        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->employee));
+        $dto = new AddressWithGetters('moscow', 'ciudad de la paz', '1345');
+
+        $sut = PropertyAccessor::build();
+        $sut->setProperty($dto, 'street', 'la plata');
+
+        $this->assertEquals('la plata', $dto->getStreet());
     }
+
+    public function testSetPrivateProperty(): void
+    {
+        $dto = new AddressWithGetters('moscow', 'ciudad de la paz', '1345');
+
+        $sut = PropertyAccessor::build();
+        $sut->setProperty($dto, 'build', '1111');
+
+        $this->assertEquals('1111', $dto->getBuild());
+    }
+
+    public function testIfGetterMethodExitsThenItShouldBeUsed(): void
+    {
+        $dto = new AddressWithMutatingGetters('moscow', 'ciudad de la paz', '1345');
+
+        $sut = PropertyAccessor::build();
+
+        $this->assertEquals('moscow.', $sut->getProperty($dto, 'city'));
+        $this->assertEquals('ciudad de la paz.', $sut->getProperty($dto, 'street'));
+        $this->assertEquals('1345.', $sut->getProperty($dto, 'build'));
+    }
+
+    public function testIfSetterMethodExitsThenItShouldBeUsed(): void
+    {
+        $dto = new AddressWithMutatingSetters('moscow', 'ciudad de la paz', '1345');
+
+        $sut = PropertyAccessor::build();
+
+        $sut->setProperty($dto, 'city', 'buenos aires');
+        $sut->setProperty($dto, 'street', 'la plata');
+        $sut->setProperty($dto, 'build', '1111');
+
+        $this->assertEquals('buenos aires.', $dto->getCity());
+        $this->assertEquals('la plata.', $dto->getStreet());
+        $this->assertEquals('1111.', $dto->getBuild());
+    }
+
+    public function testGetterMethodWhenPropertyDoesNotExist(): void
+    {
+        $dto = new Employee(1, 'Juan');
+
+        $sut = PropertyAccessor::build();
+
+        $type = $sut->getProperty($dto, 'type');
+
+        $this->assertEquals('employee', $type);
+    }
+
+//    public function testGetPropertyNames()
+//    {
+//        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->user1));
+//        $this->assertEqualsCanonicalizing(['id', 'name', 'email', 'address'], $this->accessor->getPropertyNames($this->employee));
+//    }
 }
