@@ -115,16 +115,17 @@ class PropertyAccessor
         $class = get_class($object);
 
         $key = preg_replace('/\\\/', '.', $class);
-        $metadata = $this->cache->get($key);
-        if ($metadata) {
-            return $metadata;
+
+        $cacheItem = $this->cache->getItem($key);
+        if ($cacheItem->isHit()) {
+            return $cacheItem->get();
         }
 
         $data = $this->metadataGenerator->generate($object);
-
         $metadata = new ObjectMetadata($class, $data['properties'], $data['methods']);
 
-        $this->cache->set($key, $metadata);
+        $cacheItem->set($metadata);
+        $this->cache->save($cacheItem);
 
         return $metadata;
     }
